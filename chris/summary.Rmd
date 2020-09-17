@@ -1,0 +1,71 @@
+---
+title: "Summary Stats on STAT 440 Kaggle Module 1"
+author: "Chris Sobczak"
+date: "Sat Sept 12th 2020"
+output: 
+pdf_document:
+toc: true
+---
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+# Dependancies
+```{r, message=FALSE}
+library(tidyverse)
+library(xtable)
+```
+
+# Importing Data
+```{r Baseline Data}
+base = read.delim(file = 'baseline.txt', header = T, sep = ',')
+summary(base)
+str(base)
+```
+Not sure what the baseline text file is for.
+
+```{r Training and Test Sets}
+train = read.delim(file = 'train.txt', header = T, sep = ',')
+test = read.delim(file = 'test.txt', header = T, sep = ',')
+train = mutate(	.data = train,
+		confirmed	= 	as.Date(x = confirmed, format = "%m.%d.%Y"),
+		symptoms	=	as.factor(symptoms),
+		outcome		= 	as.factor(outcome),
+		sex 		= 	as.factor(sex),
+		city 		= 	as.factor(city),
+		province	=	as.factor(province),
+		country		=	as.factor(country),
+		age 		=	as.numeric(as.factor(age))
+)
+test = mutate(	test,
+		confirmed	= 	as.Date(x = confirmed, format = "%m.%d.%Y"),
+		symptoms	=	as.factor(symptoms),
+		sex 		= 	as.factor(sex),
+		city 		= 	as.factor(city),
+		province	=	as.factor(province),
+		country		=	as.factor(country),
+		age 		=	as.numeric(as.factor(age))
+)
+summary(train)
+summary(test)
+```
+# Some Plots
+```{r, massage=FALSE, warning=FALSE, fig.height=5, echo=FALSE}
+ggplot() +
+	geom_histogram(	data 	= train,
+			mapping = aes(	x = age, fill = sex),
+			alpha = 0.8,
+			binwidth = 1
+	) +
+	ggtitle("Histogram of Population Ages")
+
+ggplot(train) +
+	geom_point(	mapping = aes( x = age, y = duration,
+			position = 'jitter')
+	) +
+	ggtitle("Scatterplot of Population (Training) age to duration of case")
+```
+
+
+
+
+

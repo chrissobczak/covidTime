@@ -1,0 +1,23 @@
+The following files are provided: train.txt including the target (duration) and the features. test.txt including the features for the dataset (with the outcome column removed). baseline.txt an example submission file with the target (duration) predicted to be always the mean of the duration over the training dataset.
+
+train.txt a comma separated variable file with a header row including age, sex, city, province, country, V1, confirmed, symptoms, outcome, duration.
+
+age: the age of the patient, in years at time of symptom onset.
+sex: the sex of the patient, as recorded by the hospital the patient presented to.
+city: the city in which the hospital the patient presented to resides. This column is anonymized by replacing each city with a coded string.
+province: the province of presentation. This column is anonymized.
+country: the country of presentation, anonymized.
+V1: a column relating to exposure, the column name is censored, and the column is anonymized.
+confirmed: the date at which a positive test for COVID-19 was recorded.
+symptoms: free text indicating the reported symptoms of the patient. Empty entries indicate missing data.
+outcome: indication of death or recovery of the patient.
+duration: the number of days between symptom onset and hospitalization.
+test.txt a comma separated variable file with a header row, for the patients in the test set.
+
+Id the patient Id. This must match the prediction file.
+age - symptoms: features, as defined in the train.txt file.
+Note that outcome is censored in the test.txt file, simulating lack of forward information in the target (if we desire to predict duration of time between symptom onset and hospitalization, we don't yet know outcome).
+baseline.txt a coma separated variable file with a header row with the columns Id and duration. Your submission file must match this format. This is a sample submission file, constructed by predicting the mean of the duration in the training set for every patient in the testing set.
+
+Id the patient Id. This must match the test.txt file (i.e., if you predict a duration for a row of the test.txt features, the corresponding row in the prediction file must list the same Id).
+duration the predicted duration of time between symptom onset and hospitalization for the patient indicated by the Id.
