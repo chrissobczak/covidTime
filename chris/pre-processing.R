@@ -16,30 +16,33 @@ train = train[-ind, ]
 # Once a set of symptoms is decided, we should stick with a fixed list,
 # and not use this function dynamically to set up the data sets ...
 
-UniqueSymptoms = function(symptoms){
+UniqueSymptoms = function(list_of_sets){
 
-	unique_symptoms = symptoms[which(!(symptoms == ''))]
+	all_symptoms = c()
 
-	# Append the entire vector with the entry, but string split
-	unique_symptoms = str_split(unique_symptoms, ';\\s')
+	for(i in 1:length(list_of_sets)){
+		unique_symptoms = 	filter(
+						select(list_of_sets[[i]], symptoms), 
+						symptoms != ''
+					)
+		unique_symptoms = as.character(unique_symptoms$symptoms)
 
-	x = unlist(unique_symptoms)
+		# Append the entire vector with the entry, but string split
+		unique_symptoms = str_split(unique_symptoms, ';\\s')
+		unique_symptoms = unlist(unique_symptoms)
 
-	unique_symptoms = unique(x)
-	unique_symptoms = gsub('(\\s|\\s[[:punct:]])\\d.*$', '', unique_symptoms)
-	unique_symptoms = gsub('(accute|pain|dry|low|ache|stiffness|congestion|severe|sore|Sore|systemic|distress|soreness|discomfort|symptoms|runny|of|shortness)', '', unique_symptoms)
-	unique_symptoms = gsub('\\s', '', unique_symptoms)
-	unique_symptoms[which(unique_symptoms == '')] = 'discomfort'
-	x = unique(unique_symptoms)
-	unique_symptoms = x[order(x)]
-	
-	return(unique_symptoms)
+		unique_symptoms = gsub('(\\s|\\s[[:punct:]])\\d.*$', '', unique_symptoms)
+		
+		unique_symptoms = str_split(unique_symptoms, '\\s')
+		unique_symptoms = unlist(unique_symptoms)
+
+		all_symptoms = append(all_symptoms, unique_symptoms)
+
+		all_symptoms = all_symptoms[order(all_symptoms)]
+	}	
+
+	return(unique(all_symptoms))
 }
-
-# Some notes about symptoms:
-#	What are the differences between pneumonia and pneumonitis ...
-#	Myalgia v. malaise ...
-#	Some Spelling Inconsistency
 
 
 # Cleaning Process
@@ -73,62 +76,104 @@ Clean = function(df){
 	df$confirmed	= as.Date(df$confirmed, format = '%d.%m.%Y')
 	
 	# Spelling Corrections
-	df$symptoms = gsub('diarrheoa', 'diarrhea', df$symptoms)
+	df$symptoms = gsub('diar[a-z]*\\>', 'diarrhea', df$symptoms)
+	df$symptoms = gsub('breath[a-z]*\\>', 'breath', df$symptoms)
 	df$symptoms = tolower(as.character(df$symptoms))
 
 	return(df)
 }
 
-Symps = function(df){
+Symps = function(df, vector_of_unique_symptoms){
 
 	# Make a new table with the symptom information
 
 	# List of all the new columns we want
-	symptom_status = c('assymptomatic', UniqueSymptoms(df$symptoms))
+	symptom_status = c('empty', vector_of_unique_symptoms)
 	
-	# Intialize dataset to contain the symptom information
+	# Intialize a table to contain the symptom information
 	symptoms = 	matrix(	data = NA,
 				ncol = length(symptom_status),
 				nrow = nrow(df)
 			)
+	# Convert to a dataframe so we can change the data classes
 	symptoms = 	as.data.frame(symptoms)
+	# Change each column into a character vector
 	for(i in 1:ncol(symptoms)){
 		symptoms[,i] = as.character(symptoms[,i])
 	}
+	# Name the columns according to the symptoms_status ...
 	names(symptoms)=symptom_status
 	
-	# Mark Assymptomatic Observations
+	# Mark Observations without symptoms listed
 	x = which(df$symptoms == '')
-	symptoms[x,1] = 'assymptomatic'
-	symptoms[-x,1] = 'symptomatic'
+	symptoms[x,1] = 'empty'
+	symptoms[-x,1] = 'symptoms'
+	symptoms[,1] = as.factor(symptoms[,1])
 
-# This empty v. not empty symptom column is pretty important ...
-# Maybe need to change the names, reread the competition descriptions
+	for(i in 2:ncol(symptoms)){
+		
+		x = 	which(	grepl(
+					gsub(	'[a-z]{2}$', 
+						'', 
+						names(symptoms)[i]
+					), 
+					df$symptoms)
+			)
 
-#	# Marking Breathing Problems
-#	x = which(grepl('breath',df$symptoms))
-#	symptoms[x,2] = gsub('brea.*(;|$)', '', df$symptoms)
-#
-#	for(i in 2:ncol(symptoms)){
-#		
-#		x = which(grepl(gsub('[a-z]{2}$', '', names(symptoms)), df$symptoms))
-#		symptoms[x,i] =	gsub(
-#					gsub('[a-z]{2}$', '', names(symptoms)),
-#					'', df$symptoms[j]
-#				)
-#	}
+		if(length(x > 0)){
+			symptoms[-x,i] = 'absent' 
+			symptoms[x,i] =		gsub(	
+							';.*$',
+							'',
+						gsub(
+							'^.*;',
+							'',
+						str_extract(	
+							df$symptoms[x],
+							paste(	'(^|;).*',
+								gsub(
+									paste(
+									'[a-z]{',
+									
+									# Needs some work here?
+									as.character(
+									str_length( 
+									names(symptoms)[i]) %/% 2
+									),
+									
+									'}', sep = ''
+									),
+									'',
+									names(symptoms)[i]
+								),
+								'.*($|;)', sep = ''
+							)
+						)
+						)
+						)
+		} else{
+			symptoms[1:nrow(df),i] = 'absent'
+		}
 
-
+		symptoms[,i] = as.factor(symptoms[,i])
+	}
 
 	return(symptoms)
-
 }
 
-train = cbind(Clean(train), Symps(train))
-validation = cbind(Clean(validation), Symps(validation))
+train = Clean(train)
+validation = Clean(validation)
+test = Clean(test)
 
-test = cbind(Clean(test), Symps(test))
+################################################################################
+### These write a .txt file with all the unique words in the symptoms column ###
+### Only redo these lines if the datasets change			     ###
+################################################################################
+# u_symptoms = UniqueSymptoms(list(train, validation, test))
+# write.table(u_symptoms, sep = ',', file = 'unique_symptoms.txt', quote = F, row.names = F)
+u_symptoms = read.table('unique_symptoms.txt', sep=',', header=T, row.names=NULL)$x
 
+symptoms_matrix = Symps(train, u_symptoms)
 
 
 
@@ -147,7 +192,7 @@ y_hat2 = predict(mod2, validation)
 rmse2 = rmse(y, y_hat2)
 
 mod3 = lm(
-	duration ~ age + assymptomatic,
+	duration ~ age,
 	train
 	)
 y_hat3 = predict(mod3, validation)
@@ -157,7 +202,7 @@ rmse3 = rmse(y, y_hat3)
 
 Id = as.data.frame(predict(mod3, test))
 names(Id) = 'duration'
-write.table(Id, sep = ',', file = 'mod.txt', quote = F)
+write.table(Id, sep = ',', file = 'mod.txt', quote = F, row.names = F)
 
 
 
