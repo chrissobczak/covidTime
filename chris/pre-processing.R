@@ -7,6 +7,8 @@ set.seed(324)
 train = read.table('train2.txt', sep=',', header=T, row.names=NULL)
 test = read.table('test2.txt', sep=',', header=T, row.names=NULL)
 
+full_train = train
+
 # Splitting Data into a validation set	
 ind = sample(seq(1,nrow(train),1), .3*nrow(train), replace=F)
 validation = train[ind, ]
@@ -161,6 +163,8 @@ Symps = function(df, vector_of_unique_symptoms){
 	return(symptoms)
 }
 
+full_train = Clean(full_train)
+
 train = Clean(train)
 validation = Clean(validation)
 test = Clean(test)
@@ -173,37 +177,16 @@ test = Clean(test)
 # write.table(u_symptoms, sep = ',', file = 'unique_symptoms.txt', quote = F, row.names = F)
 u_symptoms = read.table('unique_symptoms.txt', sep=',', header=T, row.names=NULL)$x
 
-symptoms_matrix = Symps(train, u_symptoms)
+# The Symps function still needs improvement ... verifying it's outputting what is expected
+# Identify a specific entry in 'fever' and checking ...
 
+full_train = cbind(full_train, Symps(full_train, u_symptoms))
 
+train = cbind(train, Symps(train, u_symptoms))
+validation = cbind(validation, Symps(validation, u_symptoms))
+test = cbind(test, Symps(test, u_symptoms))
 
-# Making some predictions
-y = validation$duration
-i = which(names(validation) == 'duration')
-
-validation = validation[,-i]
-
-mod1 = lm(duration ~ age, train)
-y_hat1 = predict(mod1, validation)
-rmse1 = rmse(y, y_hat1)
-
-mod2 = lm(duration ~ age + age_missing + age_changed, train)
-y_hat2 = predict(mod2, validation)
-rmse2 = rmse(y, y_hat2)
-
-mod3 = lm(
-	duration ~ age,
-	train
-	)
-y_hat3 = predict(mod3, validation)
-rmse3 = rmse(y, y_hat3)
-
-
-
-Id = as.data.frame(predict(mod3, test))
-names(Id) = 'duration'
-write.table(Id, sep = ',', file = 'mod.txt', quote = F, row.names = F)
-
-
-
-
+names(full_train)[which(names(full_train) == 'symptoms')[1]] = 'symptoms_org'
+names(train)[which(names(train) == 'symptoms')[1]] = 'symptoms_org'
+names(validation)[which(names(validation) == 'symptoms')[1]] = 'symptoms_org'
+names(test)[which(names(test) == 'symptoms')[1]] = 'symptoms_org'
