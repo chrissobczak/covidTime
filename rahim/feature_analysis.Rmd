@@ -1,0 +1,241 @@
+---
+title: "Feature Engineering"
+author: "Rahim Jutha"
+date: "12/09/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(ggplot2)
+library(tidyverse)
+library(h2o)
+
+train = read.csv('train2.csv')
+test = read.csv('test2.csv')
+baseline = read.csv('baseline2.csv')
+```
+
+```{r}
+# Train Data
+# Replace any interval values with the average of the interval
+x = as.character(train$age)
+index = str_detect(x, '-')
+train$age[index]
+y = str_split(train$age[index], '-')
+y = lapply(y, as.numeric)
+y = sapply(y, mean)
+y = sapply(y, mean)
+x[index] = y
+x[x == ''] =  NA
+x = as.numeric(x)
+train$age_clean = x
+
+# replace NA values with median
+train$age_clean[is.na(train$age_clean)] = median(train$age_clean, na.rm = TRUE)
+
+ggplot(data = train, aes(x = age_clean, y = duration)) + geom_point()
+
+# Test Data
+x = as.character(test$age)
+index = str_detect(x, '-')
+test$age[index]
+y = str_split(test$age[index], '-')
+y = lapply(y, as.numeric)
+y = sapply(y, mean)
+y = sapply(y, mean)
+x[index] = y
+x[x == ''] =  NA
+x = as.numeric(x)
+test$age_clean = x
+# replace NA values with median
+test$age_clean[is.na(test$age_clean)] = median(test$age_clean, na.rm = TRUE)
+
+ggplot(data = train, aes(x = age_clean, y = duration)) + geom_point()
+```
+
+```{r}
+# Train Data
+train$confirmed_clean = as.Date(train$confirmed, format = '%d.%m.%y')
+train$confirmed_clean[is.na(train$confirmed_clean)] = median(train$confirmed_clean, na.rm = TRUE)
+
+ggplot(data = train, aes(x = confirmed, y = duration, colour = confirmed_clean)) + geom_point()
+
+# Test Data 
+test$confirmed_clean = as.Date(test$confirmed, format = '%d.%m.%y')
+test$confirmed_clean[is.na(test$confirmed_clean)] = median(test$confirmed_clean, na.rm = TRUE)
+```
+
+```{r}
+# Train Data
+train$fever = '0'
+train[str_detect(train$symptoms, 'fever'), 'fever'] = '1'
+train$fever = as.factor(train$fever)
+
+train$cough = '0'
+train[str_detect(train$symptoms, 'cough'), 'cough'] = '1'
+train$cough = as.factor(train$cough)
+
+# Test Data
+test$fever = '0'
+test[str_detect(test$symptoms, 'fever'), 'fever'] = '1'
+test$fever = as.factor(test$fever)
+
+test$cough = '0'
+test[str_detect(test$symptoms, 'cough'), 'cough'] = '1'
+test$cough = as.factor(test$cough)
+```
+
+```{r}
+# in province and country there are levels in the train set not present in the test set.
+# one solution is to create an other category in both the train and test set.
+
+# train only f99a5 , 57155 
+# test only 17a02, 3e944, b4931
+
+
+# if a level is not in both datasets change its value to other.
+train$country_clean = as.character(train$country)
+train$country_clean[train$country_clean == 'f99a5'] = 'Other'
+train$country_clean[train$country_clean == '57155'] = 'Other'
+
+test$country_clean = as.character(test$country)
+test$country_clean[test$country == '17a02'] = 'Other'
+test$country_clean[test$country == '3e944'] = 'Other'
+test$country_clean[test$country == 'b4931'] = 'Other'
+
+train$country_clean = as.factor(train$country_clean)
+test$country_clean = as.factor(test$country_clean)
+```
+
+```{r}
+table(train$province)
+table(test$province)
+
+# in province and country there are levels in the train set not present in the test set.
+
+# train only 06b0d 1cbcc 2c0f0 61aef 6d21d 7a0f6 8447c aed28 b59f0 c9a98 c9d3e ca1bd
+# test only 1aec3 3313d 38ee1 90903 91255 92589 a5897 ac59f ccc4e cdb9c db59a e9930 ee25c f3552 f7678 fdc9d
+
+# 2 variables with to much collinearity so put them under other : 8b61f f163b
+x = c('06b0d', '1cbcc', '2c0f0', '37303', '38d67', '61aef', '6d21d', '7a0f6', '8447c', 'aed28', 'b59f0', 'c9a98', 'c9d3e', '8b61f', 'f163b')
+y = c('1aec3', '3313d', '38ee1', '90903', '91255', '92589', 'a5897', 'ac59f', 'ccc4e', 'cdb9c', 'db59a', 'e9930', 'ee25c', 'f3552', 'f7678', 'fdc9d', '8b61f', 'f163b')
+
+train$province_clean = as.character(train$province)
+train$province_clean[train$province_clean %in% x] = 'Other'
+
+test$province_clean = as.character(test$province)
+test$province_clean[test$province_clean %in% y] = 'Other'
+
+train$province_clean = as.factor(train$province_clean)
+test$province_clean = as.factor(test$province_clean)
+```
+
+```{r}
+table(train$sex)
+# if a level is not in both datasets change its value to other.
+# These values have the highest value must be male/female d516d 8a467 
+train$sex_clean = as.character(train$sex)
+train$sex_clean[train$sex_clean == '1e6ee'] = 'Other'
+train$sex_clean[train$sex_clean == '38fc4'] = 'Other'
+train$sex_clean[train$sex_clean == 'f7f7c'] = 'Other'
+
+test$sex_clean = as.character(test$sex)
+test$sex_clean[test$sex_clean == '1e6ee'] = 'Other'
+test$sex_clean[test$sex_clean == '38fc4'] = 'Other'
+test$sex_clean[test$sex_clean == 'f7f7c'] = 'Other'
+
+train$sex_clean = as.factor(train$sex_clean)
+test$sex_clean = as.factor(test$sex_clean)
+``` 
+
+
+```{r}
+table(train$V1)
+table(test$V1)
+
+x = c('6a004', '9a45a', 'f9037') 
+y = c('6c2af', 'b9016', 'beb40', 'e1502')
+
+train$V1_clean = as.character(train$V1)
+train$V1_clean[train$V1_clean %in% x] = 'Other'
+
+test$V1_clean = as.character(test$V1)
+test$V1_clean[test$V1_clean %in% y] = 'Other'
+
+train$V1_clean = as.factor(train$V1_clean)
+test$V1_clean = as.factor(test$V1_clean)
+```
+```{r}
+table(train$city)
+table(test$city)
+
+# '11f85', '3b4d6', '56626', 'b73cb'
+
+x = as.character(unique(train$city))
+y = as.character(unique(test$city))
+z = c('11f85', '3b4d6', '56626', 'b73cb')
+
+train$city_clean = as.character(train$city)
+train$city_clean[! train$city_clean %in% y | train$city_clean %in% z] = 'Other'
+
+test$city_clean = as.character(test$city)
+test$city_clean[! test$city_clean %in% x | test$city_clean %in% z] = 'Other'
+
+train$city_clean = as.factor(train$city_clean)
+test$city_clean = as.factor(test$city_clean)
+
+table(train$city_clean)
+table(test$city_clean)
+
+```
+
+
+
+
+
+
+
+
+
+
+```{r}
+train %>% saveRDS(file = "train_clean.rds")
+
+test %>% saveRDS(file = "test_clean.rds")
+```
+
+```{r}
+mod = (lm(duration~ cough + confirmed_clean + age_clean + country_clean + province_clean + V1_clean + city_clean, data = train))
+summary(mod)
+library(regclass)
+VIF(mod)
+x = predict(mod, test)
+summary(lm(duration~city_clean, data=train))
+```
+
+
+
+<!-- ```{r} -->
+
+
+<!-- h2o.init() -->
+
+<!-- train <- h2o.importFile("traintry.csv") -->
+
+<!-- test <- h2o.importFile("trytest.csv") -->
+
+<!-- y <- "duration" -->
+<!-- x <- setdiff(names(train), y) -->
+
+<!-- train[,y] <- as.factor(train[,y]) -->
+
+<!-- aml <- h2o.automl(x = x, y = y, -->
+<!--                   training_frame = train, -->
+<!--                   max_runtime_secs = 30) -->
+<!-- ``` -->
+
+<!-- ``` -->
