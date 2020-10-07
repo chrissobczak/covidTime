@@ -1,0 +1,134 @@
+---
+title: "Model Building"
+author: "Rahim Jutha"
+date: "23/09/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(tidyverse)
+library(caret)
+library(ggplot2)
+library(h2o)
+library(regclass)
+library(Metrics)
+```
+
+```{r}
+train_clean = readRDS('train_clean.rds')
+test_clean = readRDS('test_clean.rds')
+```
+
+```{r}
+# make a validation set
+set.seed(999)
+trainIndex <- createDataPartition(train_clean$duration, p = .6, 
+                                  list = FALSE, 
+                                  times = 1)
+
+train <- train_clean[ trainIndex,]
+test  <- train_clean[-trainIndex,]
+
+
+```
+
+```{r}
+mod = lm(duration ~ cough + confirmed_clean + country_clean + province_clean, data = train_clean)
+
+x = predict(mod, test_clean)
+results = data.frame(Id = test_clean$Id, duration = x)
+write.csv(results, file = 'mlr_nocity.csv')
+```
+
+```{r}
+train_clean %>% filter(duration < 30) -> train_outlier
+
+mod = lm(formula = duration ~ cough + confirmed_clean, data = train_outlier)
+
+
+library(MASS)
+# Fit the full model 
+full.model <- lm(duration~ cough + confirmed_clean + age_clean + country_clean + province_clean + V1_clean + city_clean  + fever + sex_clean, data = train_outlier)
+# Stepwise regression model
+step.model <- stepAIC(full.model, direction = "both", 
+                      trace = TRUE)
+summary(step.model)
+```
+
+# ```{r}
+# h2o.init()
+# 
+# train_clean %>% dplyr::select(age_clean, city_clean, province_clean, country_clean, V1_clean, confirmed_clean, cough, fever, duration) %>%
+#   as.h2o() -> train
+# 
+# train_clean %>% dplyr::select(age_clean, city_clean, province_clean, country_clean, V1_clean, confirmed_clean, cough, fever) %>%
+#   as.h2o() -> test
+# y <- "duration"
+# x <- setdiff(names(train), y)
+# 
+# train[,y] <- as.factor(train[,y])
+# 
+# aml <- h2o.automl(x = x, y = y,
+#                   training_frame = train,
+#                   max_runtime_secs = 30)
+# 
+# pred <- h2o.predict(aml, test) 
+# 
+# ```
+
+```{r}
+h2o.init()
+train_clean %>% dplyr::select(age_clean, city_clean, province_clean, country_clean, V1_clean, confirmed_clean, cough, fever, duration) %>%
+  as.h2o() -> train
+
+test_clean %>% dplyr::select(age_clean, city_clean, province_clean, country_clean, V1_clean, confirmed_clean, cough, fever) %>%
+  as.h2o() -> test
+
+## run our first predictive model
+rf1 <- h2o.randomForest(         ## h2o.randomForest function
+  training_frame = train,        ## the H2O frame for training
+  y='duration',                          ## the target index (what we are predicting)
+  model_id = "rf_covType_v1",    ## name the model in H2O
+                                 ##   not required, but helps use Flow
+  ntrees = 200,                  ## use a maximum of 200 trees to create the
+                                 ##  random forest model. The default is 50.
+                                 ##  I have increased it because I will let 
+                                 ##  the early stopping criteria decide when
+                                 ##  the random forest is sufficiently accurate
+  stopping_rounds = 3,           ## Stop fitting new trees when the 2-tree
+                                 ##  average is within 0.001 (default) of 
+                                 ##  the prior two 2-tree averages.
+                                 ##  Can be thought of as a convergence setting
+  score_each_iteration = T,      ## Predict against training and validation for
+                                 ##  each tree. Default will skip several.
+  seed = 423)                    ## Set the random seed so that this can be
+                                 ##  reproduced.
+
+pred <- h2o.predict(rf1, test) 
+results= as.data.frame(pred)
+write.csv(results, file = 'randomforest_1.csv')
+
+h2o.getModel('rf_covType_v1')
+results
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

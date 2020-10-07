@@ -1,0 +1,212 @@
+---
+title: "Module 1"
+author: "Rahim Jutha"
+date: "10/09/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(ggplot2)
+
+train = read.csv('train2.csv')
+test = read.csv('test2.csv')
+baseline = read.csv('baseline2.csv')
+```
+Look at each variable in the train data set.
+===
+```{r}
+# age: the age of the patient, in years at time of symptom onset.
+train$age
+# some feature engineering needs to be done on the age column
+# take avg of the rows that contain a range (ie 50 - 59)
+sum(train$age == '') # 6 entries are NA values
+# since there are so little best would be to replace them with the median value ( or possibly the average)
+ggplot(data = train, aes(x = age, y = duration, colour = age)) + geom_point()
+```
+
+
+
+```{r}
+# sex: the sex of the patient, as recorded by the hospital the patient presented to.
+train$sex
+table(train$sex)
+
+ggplot(data = train, aes(x = sex, y = duration, colour = sex)) + geom_point()
+
+# most of the entries fall under 6a50b and 8ef1a which I assume are male and female.
+# We can't distinguish which is which but shouldn't matter.
+# Based on the graph we can see there is some difference between male and female.
+# combine the 3 other categories into an other variable.
+
+# something like 0 -> 6a50b, 1 -> 8ef1a, 2 -> other 
+```
+
+```{r}
+# city: the city in which the hospital the patient presented to resides. This column is anonymized by replacing each city with a coded string.
+train$city
+table(train$city)
+ggplot(data = train, aes(x = city, y = duration, colour = city)) + geom_point()
+
+# I don't even know. 
+# Probably not usable because we can't group them cause anonymous 
+```
+
+```{r}
+# province: the province of presentation. This column is anonymized.
+train$province
+table(train$province)
+ggplot(data = train, aes(x = province, y = duration, colour = province)) + geom_point()
+
+# I don't even know. 
+# Probably not usable because we can't group them cause anonymous 
+```
+
+```{r}
+# country: the country of presentation, anonymized.
+train$country
+table(train$country)
+ggplot(data = train, aes(x = country, y = duration, colour = country)) + geom_point()
+
+# looks useful might be valuable to group some of the smaller groups into an other group
+```
+
+```{r}
+# V1: a column relating to exposure, the column name is censored, and the column is anonymized.
+train$V1
+table(train$V1)
+ggplot(data = train, aes(x = V1, y = duration, colour = V1)) + geom_point()
+
+# I don't know what this column even means but could be useful.
+```
+```{r}
+# confirmed: the date at which a positive test for COVID-19 was recorded.
+train$confirmed
+table(train$confirmed)
+
+# feature engineering: there is 1 null value and will need to convert to a date class.
+# Could also consider splitting into weeks / months instead of days
+ggplot(data = train, aes(x = confirmed, y = duration, colour = confirmed)) + geom_point()
+```
+
+```{r}
+# symptoms: free text indicating the reported symptoms of the patient. Empty entries indicate missing data.
+
+train$symptoms
+table(train$symptoms)
+
+# about 40% of the data is null values
+# most of the data is it's own string (unique rows)
+# to use this would have to do some kind of string pattern recognition
+# for example if a row contains fever or not, etc.
+```
+
+```{r}
+# outcome: indication of death or recovery of the patient.
+
+train$outcome
+ggplot(data = train, aes(x = outcome, y = duration, colour = outcome)) + geom_point()
+
+# This column doesn't help because its not in the test set woo!
+```
+
+```{r}
+# duration: the number of days between symptom onset and hospitalization.
+
+train$duration
+table(train$duration)
+
+# A lot of zeroes and values between 1-10
+# no NA values
+# This is what we are predicting
+```
+
+Look at each variable in the test data set.
+===
+```{r}
+# age: the age of the patient, in years at time of symptom onset.
+test$age
+# some feature engineering needs to be done on the age column
+# take avg of the rows that contain a range (ie 50 - 59)
+# No NA values
+# since there are so little best would be to replace them with the median value ( or possibly the average)
+ggplot(data = test, aes(x = age, y = duration, colour = age)) + geom_point()
+```
+
+```{r}
+# sex: the sex of the patient, as recorded by the hospital the patient presented to.
+test$sex
+table(test$sex)
+
+ggplot(data = test, aes(x = sex, y = duration, colour = sex)) + geom_point()
+
+# most of the entries fall under 6a50b and 8ef1a which I assume are male and female.
+# We can't distinguish which is which but shouldn't matter.
+# Based on the graph we can see there is some difference between male and female.
+# combine the 3 other categories into an other variable.
+
+# something like 0 -> 6a50b, 1 -> 8ef1a, 2 -> other 
+```
+
+```{r}
+# city: the city in which the hospital the patient presented to resides. This column is anonymized by replacing each city with a coded string.
+test$city
+table(test$city)
+ggplot(data = test, aes(x = city, y = duration, colour = city)) + geom_point()
+
+# I don't even know. 
+# Probably not usable because we can't group them cause anonymous 
+```
+
+```{r}
+# province: the province of presentation. This column is anonymized.
+test$province
+table(test$province)
+ggplot(data = test, aes(x = province, y = duration, colour = province)) + geom_point()
+
+# I don't even know. 
+# Probably not usable because we can't group them cause anonymous 
+```
+
+```{r}
+# country: the country of presentation, anonymized.
+test$country
+table(test$country)
+ggplot(data = test, aes(x = country, y = duration, colour = country)) + geom_point()
+
+# looks useful might be valuable to group some of the smaller groups into an other group
+```
+
+```{r}
+# V1: a column relating to exposure, the column name is censored, and the column is anonymized.
+test$V1
+table(test$V1)
+ggplot(data = test, aes(x = V1, y = duration, colour = V1)) + geom_point()
+
+# I don't know what this column even means but could be useful.
+```
+
+```{r}
+# confirmed: the date at which a positive test for COVID-19 was recorded.
+test$confirmed
+table(test$confirmed)
+
+# feature engineering: there is 1 null value and will need to convert to a date class.
+# Could also consider splitting into weeks / months instead of days
+ggplot(data = test, aes(x = confirmed, y = duration, colour = confirmed)) + geom_point()
+```
+
+```{r}
+# symptoms: free text indicating the reported symptoms of the patient. Empty entries indicate missing data.
+
+test$symptoms
+table(test$symptoms)
+
+# about 50% of the data is null values
+# most of the data is it's own string (unique rows)
+# to use this would have to do some kind of string pattern recognition
+# for example if a row contains fever or not, etc.
+```
