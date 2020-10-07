@@ -59,28 +59,29 @@ step.model <- stepAIC(full.model, direction = "both",
 summary(step.model)
 ```
 
+# ```{r}
+# h2o.init()
+# 
+# train_clean %>% dplyr::select(age_clean, city_clean, province_clean, country_clean, V1_clean, confirmed_clean, cough, fever, duration) %>%
+#   as.h2o() -> train
+# 
+# train_clean %>% dplyr::select(age_clean, city_clean, province_clean, country_clean, V1_clean, confirmed_clean, cough, fever) %>%
+#   as.h2o() -> test
+# y <- "duration"
+# x <- setdiff(names(train), y)
+# 
+# train[,y] <- as.factor(train[,y])
+# 
+# aml <- h2o.automl(x = x, y = y,
+#                   training_frame = train,
+#                   max_runtime_secs = 30)
+# 
+# pred <- h2o.predict(aml, test) 
+# 
+# ```
+
 ```{r}
 h2o.init()
-
-train_clean %>% dplyr::select(age_clean, city_clean, province_clean, country_clean, V1_clean, confirmed_clean, cough, fever, duration) %>%
-  as.h2o() -> train
-
-train_clean %>% dplyr::select(age_clean, city_clean, province_clean, country_clean, V1_clean, confirmed_clean, cough, fever) %>%
-  as.h2o() -> test
-y <- "duration"
-x <- setdiff(names(train), y)
-
-train[,y] <- as.factor(train[,y])
-
-aml <- h2o.automl(x = x, y = y,
-                  training_frame = train,
-                  max_runtime_secs = 30)
-
-pred <- h2o.predict(aml, test) 
-
-```
-
-```{r}
 train_clean %>% dplyr::select(age_clean, city_clean, province_clean, country_clean, V1_clean, confirmed_clean, cough, fever, duration) %>%
   as.h2o() -> train
 
@@ -112,6 +113,7 @@ results= as.data.frame(pred)
 write.csv(results, file = 'randomforest_1.csv')
 
 h2o.getModel('rf_covType_v1')
+results
 ```
 
 

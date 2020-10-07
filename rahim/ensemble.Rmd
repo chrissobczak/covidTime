@@ -1,0 +1,115 @@
+---
+title: "ensemble"
+author: "Rahim Jutha"
+date: "04/10/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+train_clean = readRDS('train_clean.rds')
+test_clean = readRDS('test_clean.rds')
+```
+
+```{r}
+h2o.init()
+train_clean %>% dplyr::select(age_clean, city_clean, province_clean, country_clean, V1_clean, confirmed_clean, cough, duration) %>%
+  as.h2o() -> train
+
+test_clean %>% dplyr::select(age_clean, city_clean, province_clean, country_clean, V1_clean, confirmed_clean, cough) %>%
+  as.h2o() -> test
+
+## run our first predictive model
+rf1 <- h2o.randomForest(         ## h2o.randomForest function
+  training_frame = train,        ## the H2O frame for training
+  y='duration',                          ## the target index (what we are predicting)
+  model_id = "rf_covType_v1",    ## name the model in H2O
+                                 ##   not required, but helps use Flow
+  ntrees = 200,                  ## use a maximum of 200 trees to create the
+                                 ##  random forest model. The default is 50.
+                                 ##  I have increased it because I will let 
+                                 ##  the early stopping criteria decide when
+                                 ##  the random forest is sufficiently accurate
+  stopping_rounds = 3,           ## Stop fitting new trees when the 2-tree
+                                 ##  average is within 0.001 (default) of 
+                                 ##  the prior two 2-tree averages.
+                                 ##  Can be thought of as a convergence setting
+  score_each_iteration = T,      ## Predict against training and validation for
+                                 ##  each tree. Default will skip several.
+  seed = 423,
+  nfolds = 10,
+  keep_cross_validation_predictions =T)                    ## Set the random seed so that this can be
+                                 ##  reproduced.
+
+pred <- h2o.predict(rf1, test) 
+results= as.data.frame(pred)
+write.csv(results, file = 'randomforest_1.csv')
+
+h2o.getModel('rf_covType_v1')
+results
+```
+
+```{r}
+my_gbm <- h2o.gbm(
+                  y = 'duration',
+                  training_frame = train,
+                  ntrees = 10,
+                  max_depth = 3,
+                  min_rows = 2,
+                  learn_rate = 0.2,
+                  nfolds = 10,
+                  keep_cross_validation_predictions = TRUE,
+                  seed = 423,
+                  model_id = 'xyz')
+
+h2o.getModel('xyz')
+
+pred <- h2o.predict(my_gbm, test) 
+results= as.data.frame(pred)
+write.csv(results, file = 'gbm_1.csv')
+
+results
+```
+
+```{r}
+glm_m <- h2o.glm(
+                  y = 'duration',
+                  training_frame = train,
+                  nfolds = 10,
+                  seed = 423,
+                  model_id = '456',
+                  keep_cross_validation_predictions = TRUE)
+
+h2o.getModel('456')
+
+pred <- h2o.predict(glm_m, test) 
+results= as.data.frame(pred)
+write.csv(results, file = 'glm.csv')
+
+results
+```
+
+
+```{r}
+ensemble <- h2o.stackedEnsemble(y = 'duration',
+                                training_frame = train,
+                                base_models = list(my_gbm, rf1, glm_m),
+                                model_id = '123')
+
+h2o.getModel('123')
+
+pred <- h2o.predict(ensemble, test) 
+results= as.data.frame(pred)
+write.csv(results, file = 'ensemble3.csv')
+
+results
+```
+
+
+
+
+
+
