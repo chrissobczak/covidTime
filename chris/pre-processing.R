@@ -169,6 +169,10 @@ train = Clean(train)
 validation = Clean(validation)
 test = Clean(test)
 
+train$log_y = log(train$duration)
+full_train$log_y = log(full_train$duration)
+validation$log_y = log(validation$duration)
+
 ################################################################################
 ### These write a .txt file with all the unique words in the symptoms column ###
 ### Only redo these lines if the datasets change			     ###
