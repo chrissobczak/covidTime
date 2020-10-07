@@ -1,0 +1,56 @@
+---
+title: "Training and Tuning Parameters (Random Forest)"
+author: "Rahim Jutha"
+date: "03/10/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+# Load packages for data manipulation
+library(ggplot2)
+library(tidyverse)
+
+# Clear Workspace
+rm(list = ls())
+
+# Load Cleaned Data
+train = readRDS('train_clean.rds')
+train %>% dplyr::select(age_clean, cough, confirmed_clean, country_clean, province_clean, city_clean, V1_clean, duration) -> train
+train_full = as.h2o(train)
+
+test = readRDS('test_clean.rds')
+test = as.h2o(test)
+```
+
+```{r}
+# Activate h2o package
+library(h2o)
+h2o.init()
+    
+# Train default Random Forest: 
+rf1 <- h2o.randomForest(
+  training_frame = train_full,      
+  y='duration',              
+  model_id = "abc", 
+  ntrees = 200,           
+  stopping_rounds = 5,      
+  score_each_iteration = T,
+  seed = 423,
+  max_depth = 20)     
+
+h2o.getModel('abc')
+
+pred <- h2o.predict(rf1, test) 
+results= as.data.frame(pred)
+write.csv(results, file = 'rf_retry.csv')
+head(pred)
+```
+
+
+
+
+
