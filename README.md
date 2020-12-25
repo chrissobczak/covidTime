@@ -1,4 +1,4 @@
-# stat440-module1
+# covidTime
 Predicting length of time from onset of COVID symptoms to hospitalization.
 
 # Agenda
